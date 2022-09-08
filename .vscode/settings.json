@@ -1,0 +1,11 @@
+{
+  "javascript.format.enable": false, // Disable default javascript formatter.
+  "[javascript]": {
+    "editor.formatOnSave": true // Enable formatOnSave for javascript files.
+  },
+  "[javascriptreact]": {
+    "editor.formatOnSave": true // Enable formatOnSave for jsx files.
+  }, // Use 'prettier-eslint' instead of 'prettier'.
+  "explorer.autoReveal": true,
+  "prettier.printWidth": 80
+}
