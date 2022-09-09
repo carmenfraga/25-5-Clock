@@ -1,5 +1,5 @@
 import "./App.css";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { intervalToDuration } from "date-fns";
 
 const TWENTY_FIVE_MINUTES_MS = 1500000;
@@ -12,6 +12,8 @@ const SESSION_INCREMENT_ID = "session-increment";
 
 const zeroPad = (num) => String(num).padStart(2, "0");
 
+let intervalId = null;
+
 function App() {
   const [breakLengthValue, setBreakLengthValue] = useState(
     DEFAULT_BREAK_LENGTH_VALUE
@@ -19,25 +21,52 @@ function App() {
   const [sessionLengthValue, setSessionLengthValue] = useState(
     DEFAULT_SESSION_LENGTH_VALUE
   );
-  const [timeLeftValue, setTimeLeftValue] = useState();
 
+  // TODO: This condition is active when session is active, otherwise would be the break (false)
+  const [isSessionActive, setIsSessionActive] = useState(true);
+
+  // TODO: breakDuration. Timer actual es de session; hacer otro timer para break
+  const [timerValue, setTimerValue] = useState(0);
+
+  const [hasTimerStarted, setHasTimerStarted] = useState(false);
   const sessionDuration = intervalToDuration({
-    start: 0,
-    end: TWENTY_FIVE_MINUTES_MS,
+    start: timerValue * 1000,
+    end: sessionLengthValue * 60 * 1000,
   });
+
+  useEffect(() => {
+    if (hasTimerStarted) {
+      intervalId = setInterval(() => {
+        setTimerValue((timerValue) => timerValue + 1);
+      }, 1000);
+    } else {
+      clearInterval(intervalId);
+    }
+
+    return () => clearInterval(intervalId);
+  }, [hasTimerStarted]); // useEffect only runs when the variable inside the brackets has changed
+
+  if (
+    sessionDuration.hours === 0 &&
+    sessionDuration.minutes === 0 &&
+    sessionDuration.seconds === 0
+  ) {
+    setIsSessionActive(false);
+  }
 
   const handleResetClick = () => {
     setBreakLengthValue(DEFAULT_BREAK_LENGTH_VALUE);
     setSessionLengthValue(DEFAULT_SESSION_LENGTH_VALUE);
+    setTimerValue(0);
   };
 
   const handleBreakClick = (event) => {
     const idClicked = event.target.id;
 
     if (idClicked === BREAK_DECREMENT_ID) {
-      setBreakLengthValue(breakLengthValue - 1);
+      setBreakLengthValue(Math.max(breakLengthValue - 1, 0));
     } else if (idClicked === BREAK_INCREMENT_ID) {
-      setBreakLengthValue(breakLengthValue + 1);
+      setBreakLengthValue(Math.min(breakLengthValue + 1, 60));
     }
   };
 
@@ -45,10 +74,14 @@ function App() {
     const idClicked = event.target.id;
 
     if (idClicked === SESSION_DECREMENT_ID) {
-      setSessionLengthValue(sessionLengthValue - 1);
+      setSessionLengthValue(Math.max(sessionLengthValue - 1, 0));
     } else if (idClicked === SESSION_INCREMENT_ID) {
-      setSessionLengthValue(sessionLengthValue + 1);
+      setSessionLengthValue(Math.min(sessionLengthValue + 1, 60));
     }
+  };
+
+  const handleStartStopClick = () => {
+    setHasTimerStarted(!hasTimerStarted);
   };
 
   return (
@@ -75,11 +108,28 @@ function App() {
         </button>
       </div>
       <div id="timer-label">
-        <h3>Session</h3>
-        <div id="time-left">
-          {zeroPad(sessionDuration.minutes)}:{zeroPad(sessionDuration.seconds)}
-        </div>
-        <button id="start_stop">Start/Stop</button>
+        {isSessionActive && (
+          <>
+            <h3>Session</h3>
+            <div id="time-left">
+              {zeroPad(sessionDuration.hours)}:
+              {zeroPad(sessionDuration.minutes)}:
+              {zeroPad(sessionDuration.seconds)}
+            </div>
+          </>
+        )}
+        {/* TODO: {!isSessionActive && (
+          <>
+            <h3>Break</h3>s
+            <div id="time-left">
+              {zeroPad(breakDuration.hours)}:{zeroPad(breakDuration.minutes)}:
+              {zeroPad(breakDuration.seconds)}
+            </div>
+          </>
+        )} */}
+        <button id="start_stop" onClick={handleStartStopClick}>
+          Start/Stop
+        </button>
         <button id="reset" onClick={handleResetClick}>
           Reset
         </button>
