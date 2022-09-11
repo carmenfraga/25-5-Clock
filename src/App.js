@@ -2,7 +2,6 @@ import "./App.css";
 import React, { useState, useEffect } from "react";
 import { intervalToDuration } from "date-fns";
 
-const TWENTY_FIVE_MINUTES_MS = 1500000;
 const DEFAULT_BREAK_LENGTH_VALUE = 5;
 const DEFAULT_SESSION_LENGTH_VALUE = 25;
 const BREAK_DECREMENT_ID = "break-decrement";
@@ -15,49 +14,71 @@ const zeroPad = (num) => String(num).padStart(2, "0");
 let intervalId = null;
 
 function App() {
-  const [breakLengthValue, setBreakLengthValue] = useState(
-    DEFAULT_BREAK_LENGTH_VALUE
-  );
   const [sessionLengthValue, setSessionLengthValue] = useState(
     DEFAULT_SESSION_LENGTH_VALUE
   );
+  const [breakLengthValue, setBreakLengthValue] = useState(
+    DEFAULT_BREAK_LENGTH_VALUE
+  );
 
-  // TODO: This condition is active when session is active, otherwise would be the break (false)
+  // This condition is active when session is active, otherwise would be the break (false)
   const [isSessionActive, setIsSessionActive] = useState(true);
 
-  // TODO: breakDuration. Timer actual es de session; hacer otro timer para break
-  const [timerValue, setTimerValue] = useState(0);
+  const [sessionTimerValue, setSessionTimerValue] = useState(0);
+  const [breakTimerValue, setBreakTimerValue] = useState(0);
 
   const [hasTimerStarted, setHasTimerStarted] = useState(false);
+
   const sessionDuration = intervalToDuration({
-    start: timerValue * 1000,
+    start: sessionTimerValue * 1000,
     end: sessionLengthValue * 60 * 1000,
+  });
+
+  const breakDuration = intervalToDuration({
+    start: breakTimerValue * 1000,
+    end: breakLengthValue * 60 * 1000,
   });
 
   useEffect(() => {
     if (hasTimerStarted) {
       intervalId = setInterval(() => {
-        setTimerValue((timerValue) => timerValue + 1);
+        if (isSessionActive) {
+          setSessionTimerValue((sessionTimerValue) => sessionTimerValue + 1);
+        } else {
+          setBreakTimerValue((breakTimerValue) => breakTimerValue + 1);
+        }
       }, 1000);
     } else {
       clearInterval(intervalId);
     }
 
     return () => clearInterval(intervalId);
-  }, [hasTimerStarted]); // useEffect only runs when the variable inside the brackets has changed
+  }, [hasTimerStarted, isSessionActive]); // useEffect only runs when the variable inside the brackets has changed
 
   if (
     sessionDuration.hours === 0 &&
     sessionDuration.minutes === 0 &&
-    sessionDuration.seconds === 0
+    sessionDuration.seconds === 0 &&
+    isSessionActive
   ) {
     setIsSessionActive(false);
+    setSessionTimerValue(0);
+  }
+
+  if (
+    breakDuration.hours === 0 &&
+    breakDuration.minutes === 0 &&
+    breakDuration.seconds === 0 &&
+    !isSessionActive
+  ) {
+    setIsSessionActive(true);
+    setBreakTimerValue(0);
   }
 
   const handleResetClick = () => {
     setBreakLengthValue(DEFAULT_BREAK_LENGTH_VALUE);
     setSessionLengthValue(DEFAULT_SESSION_LENGTH_VALUE);
-    setTimerValue(0);
+    setSessionTimerValue(0);
   };
 
   const handleBreakClick = (event) => {
@@ -118,15 +139,16 @@ function App() {
             </div>
           </>
         )}
-        {/* TODO: {!isSessionActive && (
+
+        {!isSessionActive && (
           <>
-            <h3>Break</h3>s
+            <h3>Break</h3>
             <div id="time-left">
               {zeroPad(breakDuration.hours)}:{zeroPad(breakDuration.minutes)}:
               {zeroPad(breakDuration.seconds)}
             </div>
           </>
-        )} */}
+        )}
         <button id="start_stop" onClick={handleStartStopClick}>
           Start/Stop
         </button>
